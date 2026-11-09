@@ -437,3 +437,20 @@ Modelo:
 - Consequências: só caminhos mudaram (solução, referências entre projetos, `scripts\publicar.ps1`,
   `scripts\previa-tela.ps1`, documentação). Referências antigas a `src\Reparo.sln` nas decisões
   anteriores valem como histórico.
+
+## D-024 — `.exe` publicado nos releases do GitHub
+- Data: 2026-11-09
+- Status: aprovada (escolha do usuário)
+- Contexto: o usuário quer o `ReparoSysPDV.exe` disponível nos releases do repositório público.
+  O `.exe` leva dentro os programas de D-015 e D-016, incluindo o VerificaIndice (SysPDV) e o
+  dbMonitor (Devart), que são proprietários e por isso ficam fora do código-fonte (D-022).
+- Decisão:
+  - O `.exe` completo vai para os releases do GitHub, com os programas de terceiros embutidos.
+    O usuário confirmou que a PBtec pode redistribuir o VerificaIndice e o dbMonitor.
+  - Cada release leva junto o `LICENSE` e o `NOTICE` (a Apache 2.0 exige o `NOTICE` em toda
+    redistribuição). `scripts\publicar.ps1` passou a copiar os dois para `dist\`.
+  - O `NOTICE` diz que o `.exe` dos releases contém esses programas, que eles não são cobertos
+    pela Apache 2.0, e onde está o código-fonte do Firebird (exigência da IPL).
+  - Tag do release = `v` + `<Version>` do `Reparo.App.csproj` (primeira: `v1.0.0`).
+- Consequências: o código-fonte continua sem programas de terceiros; quem baixa o release recebe
+  o pacote pronto para a loja.

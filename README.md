@@ -26,6 +26,10 @@ Substitui o antigo `REPARO.CMD` fazendo o mesmo conserto, só que com segurança
 
 ## Como usar (na loja)
 
+Baixe o `ReparoSysPDV.exe` na página de
+[Releases](https://github.com/Jhowseh/reparador-syspdv/releases/latest). É um arquivo só: não
+precisa instalar nada.
+
 Instruções para o operador: [`src/Reparo.App/LEIA-ME.txt`](src/Reparo.App/LEIA-ME.txt).
 Em resumo: fechar o sistema em todos os caixas, abrir o `ReparoSysPDV.exe` como administrador,
 escolher o banco, digitar a senha e clicar em **Iniciar reparo**.

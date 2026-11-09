@@ -8,14 +8,18 @@ Licenciado sob a Apache License, Version 2.0 (arquivo LICENSE).
 
 Programas de terceiros
 ----------------------
-Este repositório NÃO contém programas de terceiros. Para compilar, os arquivos
-abaixo precisam ser obtidos separadamente (lista em terceiros/LEIA-ME.md) e são
-embutidos no ReparoSysPDV.exe gerado. Eles NÃO estão cobertos por esta licença
-e continuam sob as licenças dos seus donos:
+O código-fonte deste repositório NÃO contém programas de terceiros. Para
+compilar, os arquivos abaixo precisam ser obtidos separadamente (lista em
+terceiros/LEIA-ME.md).
+
+O ReparoSysPDV.exe publicado nos releases do GitHub CONTÉM esses programas,
+embutidos para serem colocados na pasta do SysPDV durante o reparo. Eles NÃO
+estão cobertos pela Apache License e continuam sob as licenças dos seus donos:
 
 - gfix, gbak, fbclient.dll e firebird.msg: Firebird 2.5.1, da Firebird
   Foundation, sob a InterBase Public License (IPL) e a Initial Developer's
   Public License (IDPL). https://firebirdsql.org/
+  Código-fonte do Firebird: https://github.com/FirebirdSQL/firebird
 - VerificaIndice: parte do SysPDV, software proprietário do seu respectivo dono.
 - dbMonitor: Devart dbMonitor, software proprietário da Devart.
 

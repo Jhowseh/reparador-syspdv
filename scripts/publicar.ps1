@@ -38,8 +38,12 @@ dotnet publish $projeto -c Release -r win-x64 --self-contained true --nologo `
     -o $destinoCompleto
 if ($LASTEXITCODE -ne 0) { throw 'Falha no dotnet publish.' }
 
-# O pacote é só o .exe (D-011). Instruções de uso: src\Reparo.App\LEIA-ME.txt.
+# O programa é só o .exe (D-011). Instruções de uso: src\Reparo.App\LEIA-ME.txt.
 # Configuração opcional para técnicos: src\Reparo.App\reparo.exemplo.json.
+# LICENSE e NOTICE vão junto: a Apache 2.0 exige o NOTICE em toda redistribuição (D-024).
+foreach ($arquivo in 'LICENSE', 'NOTICE') {
+    Copy-Item -LiteralPath (Join-Path $raiz $arquivo) -Destination $destinoCompleto
+}
 
 Write-Host ''
 Write-Host "Pacote pronto em: $destinoCompleto" -ForegroundColor Green
