@@ -69,14 +69,6 @@ PowerShell 5.1 ou superior.
 | `docs/previa-tela/` | Imagens da tela, geradas por `scripts/previa-tela.ps1` |
 | `assets/logos/` | Logos da PBtec usados na tela |
 | `terceiros/` | Programas de terceiros embutidos no `.exe` (fora do git) |
-| `AGENTS.md`, `CLAUDE.md`, `.github/`, `.claude/`, `.vscode/` | Instruções e comandos para agentes de IA (Copilot, Claude Code) |
-
-## Desenvolvimento com agentes de IA
-
-O projeto foi feito com agentes de IA trabalhando em etapas e validando tudo no harness.
-As regras de segurança que eles seguem estão em [`AGENTS.md`](AGENTS.md); os comandos
-`/planejar-app`, `/implementar-etapa`, `/rodar-harness` e `/revisar-seguranca` ficam em
-`.github/prompts/` (Copilot) e `.claude/commands/` (Claude Code).
 
 ## Créditos
 

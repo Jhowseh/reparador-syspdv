@@ -1,6 +1,7 @@
 # Instruções do Copilot — Reparo SysPDV
 
-Leia e siga `AGENTS.md` na raiz do repositório. Ele é a fonte principal de instruções.
+Requisitos e contrato com o harness: `docs/especificacao.md`. Decisões: `docs/decisoes.md`.
+Plano e progresso: `docs/plano.md`.
 
 Resumo das regras que nunca podem ser quebradas:
 

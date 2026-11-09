@@ -4,14 +4,14 @@ agent: 'agent'
 ---
 Você vai planejar o app que substitui `docs/original/REPARO.CMD`. **Não escreva código do app nesta etapa.**
 
-1. Leia `AGENTS.md`, `docs/especificacao.md`, `docs/original/REPARO.CMD`, `docs/decisoes.md` e `harness/README.md`.
+1. Leia `.github/copilot-instructions.md`, `docs/especificacao.md`, `docs/original/REPARO.CMD`, `docs/decisoes.md` e `harness/README.md`.
 2. Faça para mim as perguntas da seção "Perguntas em aberto" da especificação que ainda não têm
    resposta (no máximo 5, as que mais mudam a decisão). Espere as respostas.
 3. Proponha 2 ou 3 opções de stack, com prós e contras, e recomende uma. Considere:
    versões do Windows nas lojas, distribuição em um único executável, execução como administrador,
    interface para operador leigo, facilidade de manutenção por mim, e se roda sem instalar runtime.
 4. Descreva a arquitetura em poucas linhas, incluindo:
-   - módulo único de execução de processos externos (contrato do harness, `AGENTS.md` seção 4);
+   - módulo único de execução de processos externos (contrato do harness, `docs/especificacao.md`);
    - configuração (arquivo + variáveis `REPARO_*`), com a senha fora do código;
    - fluxo em etapas com checagem de resultado e desfazer (rollback);
    - log em arquivo com senha mascarada;

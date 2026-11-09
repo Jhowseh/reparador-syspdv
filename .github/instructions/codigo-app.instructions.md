@@ -2,7 +2,7 @@
 applyTo: 'src/**,tests/**'
 ---
 Código do app de reparo. Antes de editar, confira `docs/especificacao.md` (requisitos R01–R25)
-e o contrato com o harness em `AGENTS.md` (seção 4).
+e o "Contrato com o harness" na mesma especificação.
 
 - Toda execução de processo externo passa por uma única classe/módulo, que resolve o executável
   como `<REPARO_FERRAMENTAS_DIR>\<nome>.cmd` quando essa variável existir.

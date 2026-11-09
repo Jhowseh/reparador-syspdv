@@ -73,12 +73,35 @@ O backup + restore reconstrói o banco do zero, o que elimina lixo e corrupçõe
 - **R15** Ao terminar (com sucesso ou não), o serviço do Firebird deve estar rodando.
 
 ### Operação
-- **R20** Caminhos, nome do serviço, usuário e senha configuráveis (ver contrato em `AGENTS.md`).
+- **R20** Caminhos, nome do serviço, usuário e senha configuráveis (ver "Contrato com o harness" abaixo).
 - **R21** Log completo de cada etapa (comando, saída, código de saída, duração), senha mascarada.
 - **R22** Verificar privilégio de administrador e espaço em disco antes de começar.
 - **R23** Pedir confirmação antes de começar, avisando que os caixas serão desconectados (exceto em modo não interativo).
 - **R24** Modo não interativo (`REPARO_NAO_INTERATIVO=1`) para o harness.
 - **R25** Preferir parar o serviço normalmente; matar o processo só se ele não parar dentro de um tempo limite.
+
+### Contrato com o harness
+O app aceita a configuração abaixo por variáveis de ambiente (pode ter também arquivo de
+configuração ou argumentos, mas as variáveis têm prioridade). O harness define todas elas.
+
+| Variável | Significado | Valor em produção (padrão) |
+|---|---|---|
+| `REPARO_BASE_DIR` | Pasta do SysPDV | `C:\SYSPDV` |
+| `REPARO_FERRAMENTAS_DIR` | Se definida, **toda** ferramenta externa é executada como `<dir>\<nome>.cmd` | (vazia) |
+| `REPARO_DB_USUARIO` | Usuário do Firebird | `SYSDBA` |
+| `REPARO_DB_SENHA` | Senha do Firebird | lida da configuração, nunca no código |
+| `REPARO_SERVICO_FIREBIRD` | Nome do serviço | `FirebirdServerDefaultInstance` |
+| `REPARO_LOG_DIR` | Pasta onde o app grava seus logs | ex.: `C:\SYSPDV\logs-reparo` |
+| `REPARO_NAO_INTERATIVO` | `1` = não perguntar nada, não pausar, não abrir janelas | (vazia) |
+
+Ferramentas externas que o app pode chamar (nomes usados em `REPARO_FERRAMENTAS_DIR`):
+`gfix`, `gbak`, `net`, `tskill`, `taskkill`, `VERIFICAINDICE`, `atualizasyspdv_server`,
+`dbMonitor`, `syspdv_server`.
+
+- Controle do serviço do Firebird: pelo comando `net stop/start` (ou a mesma abstração), para que
+  o harness consiga simular. Nada de APIs que o harness não intercepta quando estiver em modo teste.
+- O banco pode ser passado como caminho completo (`C:\...\syspdv_srv.fdb`) ou relativo à pasta base.
+- Código de saída do app: `0` = reparo concluído; diferente de `0` = falhou/abortou.
 
 ## 5. Perguntas em aberto (fazer ao usuário)
 

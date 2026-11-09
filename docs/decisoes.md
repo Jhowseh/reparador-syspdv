@@ -98,7 +98,7 @@ Modelo:
 ## D-006 — Formato e regras da configuração
 - Data: 2026-11-03
 - Status: aprovada
-- Contexto: R20 e contrato do harness (`AGENTS.md` seção 4).
+- Contexto: R20 e contrato do harness (`docs/especificacao.md`).
 - Decisão:
   - Arquivo `reparo.json` ao lado do `.exe` (aceita comentários `//`; nomes sem diferenciar
     maiúsculas). Modelo comentado em `src/Reparo.App/reparo.exemplo.json`. Prioridade:
@@ -260,7 +260,7 @@ Modelo:
 - Status: aprovada (escolha do usuário; altera D-005)
 - Contexto: pendência R2. Com `--nao-interativo` numa loja, o VERIFICAINDICE e a atualização abrem
   janela e o app espera sem tempo limite alguém fechá-las; sem ninguém na tela o reparo nunca
-  termina. Isso também contraria o contrato (AGENTS.md: modo não interativo "não abre janelas").
+  termina. Isso também contraria o contrato (`docs/especificacao.md`: modo não interativo "não abre janelas").
   Alternativas descartadas: tempo limite que fecha o programa (pode interromper o VERIFICAINDICE
   no meio) e pular as janelas (banco fica com índices desativados).
 - Decisão: `Configuracao.Validar` recusa o modo não interativo quando não há
