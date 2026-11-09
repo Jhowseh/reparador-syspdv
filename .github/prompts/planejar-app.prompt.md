@@ -11,7 +11,7 @@ Você vai planejar o app que substitui `docs/original/REPARO.CMD`. **Não escrev
    versões do Windows nas lojas, distribuição em um único executável, execução como administrador,
    interface para operador leigo, facilidade de manutenção por mim, e se roda sem instalar runtime.
 4. Descreva a arquitetura em poucas linhas, incluindo:
-   - módulo único de execução de processos externos (contrato do harness, `docs/especificacao.md`);
+   - módulo único de execução de processos externos ("Contrato com o harness" em `docs/especificacao.md`);
    - configuração (arquivo + variáveis `REPARO_*`), com a senha fora do código;
    - fluxo em etapas com checagem de resultado e desfazer (rollback);
    - log em arquivo com senha mascarada;

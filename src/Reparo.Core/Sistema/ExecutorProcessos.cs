@@ -34,7 +34,7 @@ public sealed class OpcoesProcesso
     public TimeSpan TempoObservacao { get; init; } = TimeSpan.FromSeconds(10);
 }
 
-/// <summary>Único ponto do app que executa programas externos (contrato do harness, docs/especificacao.md).</summary>
+/// <summary>Único ponto do app que executa programas externos (ver "Contrato com o harness" em docs/especificacao.md).</summary>
 public interface IExecutorProcessos
 {
     /// <summary>Caminho do programa que seria executado, ou nulo se não foi encontrado.</summary>

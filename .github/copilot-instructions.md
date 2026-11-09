@@ -1,6 +1,6 @@
 # Instruções do Copilot — Reparo SysPDV
 
-Requisitos e contrato com o harness: `docs/especificacao.md`. Decisões: `docs/decisoes.md`.
+Requisitos e contrato com o harness: `docs/especificacao.md` (seção 4). Decisões: `docs/decisoes.md`.
 Plano e progresso: `docs/plano.md`.
 
 Resumo das regras que nunca podem ser quebradas:

@@ -77,7 +77,7 @@ O backup + restore reconstrói o banco do zero, o que elimina lixo e corrupçõe
 - **R21** Log completo de cada etapa (comando, saída, código de saída, duração), senha mascarada.
 - **R22** Verificar privilégio de administrador e espaço em disco antes de começar.
 - **R23** Pedir confirmação antes de começar, avisando que os caixas serão desconectados (exceto em modo não interativo).
-- **R24** Modo não interativo (`REPARO_NAO_INTERATIVO=1`) para o harness.
+- **R24** Modo não interativo (`REPARO_NAO_INTERATIVO=1`), usado pelo harness.
 - **R25** Preferir parar o serviço normalmente; matar o processo só se ele não parar dentro de um tempo limite.
 
 ### Contrato com o harness

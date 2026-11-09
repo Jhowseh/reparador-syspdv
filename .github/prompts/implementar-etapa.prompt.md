@@ -4,7 +4,7 @@ agent: 'agent'
 ---
 Implemente a próxima etapa não marcada de `docs/plano.md` (ou a etapa que eu indicar: ${input:etapa:próxima}).
 
-1. Leia `.github/copilot-instructions.md`, a etapa no plano e os requisitos relacionados em `docs/especificacao.md`.
+1. Leia `.github/copilot-instructions.md`, a etapa no plano, os requisitos relacionados e o "Contrato com o harness" em `docs/especificacao.md`.
 2. Implemente **só essa etapa**, com testes de unidade quando fizer sentido.
 3. Compile e rode os testes de unidade.
 4. Rode o harness: `powershell -NoProfile -ExecutionPolicy Bypass -File harness/executar.ps1 -Alvo app`.
