@@ -1,0 +1,14 @@
+{
+  "nome": "falha-backup",
+  "descricao": "O backup (gbak -b) falha sempre e deixa um .fbk incompleto. O app deve parar, manter o banco original no lugar e deixar o servico rodando.",
+  "servicoInicial": "iniciado",
+  "falhas": [
+    {
+      "ferramenta": "gbak",
+      "modo": "backup",
+      "codigoSaida": 1,
+      "mensagem": "gbak: ERROR:I/O error during \"WriteFile\" operation for file \"syspdv_srv.fbk\"\ngbak: ERROR:    Error while trying to write to file\ngbak:Exiting before completion due to errors"
+    }
+  ],
+  "esperado": { "sucesso": false, "bancoFinal": "original" }
+}

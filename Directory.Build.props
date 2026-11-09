@@ -1,0 +1,10 @@
+<Project>
+
+  <!-- Configurações comuns a todos os projetos .NET do repositório (src\ e tests\). -->
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

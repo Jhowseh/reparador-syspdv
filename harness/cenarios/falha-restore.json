@@ -1,0 +1,14 @@
+{
+  "nome": "falha-restore",
+  "descricao": "O restore (gbak -c) falha sempre e deixa um banco parcial. O app deve apagar o parcial, devolver o banco original ao lugar e deixar o servico rodando.",
+  "servicoInicial": "iniciado",
+  "falhas": [
+    {
+      "ferramenta": "gbak",
+      "modo": "restore",
+      "codigoSaida": 1,
+      "mensagem": "gbak: ERROR:violation of FOREIGN KEY constraint \"FK_ITEM_VENDA\" on table \"ITEM_VENDA\"\ngbak: ERROR:    Foreign key reference target does not exist\ngbak:Exiting before completion due to errors"
+    }
+  ],
+  "esperado": { "sucesso": false, "bancoFinal": "original" }
+}

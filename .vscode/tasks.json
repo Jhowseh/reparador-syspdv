@@ -1,0 +1,38 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Harness: app (todos os cenários)",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/harness/executar.ps1", "-Alvo", "app"],
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Harness: app (escolher cenário)",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/harness/executar.ps1", "-Alvo", "app", "-Cenario", "${input:cenario}"],
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Harness: autoteste com o script original",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/harness/executar.ps1", "-Alvo", "legado"],
+      "group": "test",
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "cenario",
+      "type": "pickString",
+      "description": "Cenário do harness",
+      "options": ["normal", "banco-corrompido", "servico-parado", "falha-backup", "falha-restore"],
+      "default": "normal"
+    }
+  ]
+}

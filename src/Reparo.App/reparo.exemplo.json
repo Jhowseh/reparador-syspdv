@@ -1,0 +1,40 @@
+// Configuração OPCIONAL (só para técnicos). O app funciona sem este arquivo: o operador escolhe o
+// banco na tela, digita a senha e o Firebird é detectado sozinho.
+// Para usar, copie como "reparo.json" na mesma pasta do .exe e deixe só o que precisar mudar.
+// Na tela, o banco escolhido define a pasta base e a senha digitada vale mais que a deste arquivo.
+// Variáveis de ambiente REPARO_* têm prioridade sobre este arquivo.
+{
+  // Pasta do SysPDV (padrão C:\SYSPDV). Variável: REPARO_BASE_DIR
+  "pastaBase": "C:\\SYSPDV",
+
+  // Banco: nome dentro da pasta base ou caminho completo (padrão syspdv_srv.fdb)
+  "banco": "syspdv_srv.fdb",
+
+  // Onde o banco antigo é guardado com data e hora no nome (dentro da pasta base)
+  "pastaBackupBanco": "bkpBd",
+
+  // Usuário do Firebird (padrão SYSDBA). Variável: REPARO_DB_USUARIO
+  "usuario": "SYSDBA",
+
+  // Senha do Firebird. Se ficar vazia, o app pergunta na tela. Variável: REPARO_DB_SENHA
+  "senha": "",
+
+  // Serviço e processo do Firebird
+  "servicoFirebird": "FirebirdServerDefaultInstance",
+  "processoFirebird": "fbserver.exe",
+  "tempoLimitePararServicoSegundos": 60,
+
+  // Pasta dos logs do reparo (padrão <pastaBase>\logs-reparo). Variável: REPARO_LOG_DIR
+  "pastaLog": "C:\\SYSPDV\\logs-reparo",
+
+  // O reparador traz o gfix, o gbak, o fbclient.dll e o firebird.msg do Firebird 2.5.1, o
+  // VerificaIndice e o dbMonitor e coloca na pasta do SysPDV antes de reparar (os de outra versão
+  // vão para bkpBd\ferramentas-anteriores_...). Use false para não copiar e usar os já instalados.
+  "copiarProgramas": true,
+
+  // Caminho de cada ferramenta (vence a cópia acima e a detecção automática)
+  "ferramentas": {
+    "gfix": "C:\\Program Files\\Firebird\\Firebird_2_5\\bin\\gfix.exe",
+    "gbak": "C:\\Program Files\\Firebird\\Firebird_2_5\\bin\\gbak.exe"
+  }
+}

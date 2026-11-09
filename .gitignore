@@ -1,0 +1,34 @@
+# sandbox do harness (recriado a cada execução)
+harness/.sandbox/
+
+# saídas de build comuns (não ignorar harness/bin!)
+[Bb]in/
+!harness/bin/
+[Oo]bj/
+dist/
+build/
+publish/
+TestResults/
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+.vs/
+*.user
+*.suo
+
+# programas de terceiros embutidos no .exe: não são deste projeto (D-022, terceiros/LEIA-ME.md)
+terceiros/*
+!terceiros/LEIA-ME.md
+
+# nunca versionar bancos, logs ou configuração com senha
+*.fdb
+*.fbk
+*.log
+config.local.*
+reparo.json
+
+# configurações locais de agentes e do sistema
+.claude/settings.local.json
+Thumbs.db
+desktop.ini

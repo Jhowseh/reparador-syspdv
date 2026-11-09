@@ -1,0 +1,7 @@
+{
+  "nome": "servico-parado",
+  "descricao": "O servico do Firebird ja esta parado quando o app comeca (net stop retorna erro 2). O app deve seguir normalmente.",
+  "servicoInicial": "parado",
+  "falhas": [],
+  "esperado": { "sucesso": true, "bancoFinal": "restaurado" }
+}

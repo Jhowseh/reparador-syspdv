@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Reparo.Core\Reparo.Core.csproj" />
+    <InternalsVisibleTo Include="Reparo.Testes" />
+  </ItemGroup>
+
+  <!-- Logos da PBtec (claro/escuro), gerados por scripts/gerar-logos.ps1 (D-021) -->
+  <ItemGroup>
+    <EmbeddedResource Include="Recursos\logo-claro.png" LogicalName="Reparo.App.logo-claro.png" />
+    <EmbeddedResource Include="Recursos\logo-escuro.png" LogicalName="Reparo.App.logo-escuro.png" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWindowsForms>true</UseWindowsForms>
+
+    <AssemblyName>ReparoSysPDV</AssemblyName>
+    <RootNamespace>Reparo.App</RootNamespace>
+    <Version>1.0.0</Version>
+    <Product>Reparo do banco SysPDV</Product>
+    <AssemblyTitle>Reparo do banco de dados do SysPDV</AssemblyTitle>
+    <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
+    <!-- Gerado por scripts/gerar-icone.ps1 (D-019) -->
+    <ApplicationIcon>app.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <!--
+    Manifesto que pede administrador (UAC) só no .exe publicado para a loja
+    (scripts/publicar.ps1 passa -p:ExigirAdministrador=true). Sem isso o harness, que roda
+    sem administrador, não conseguiria abrir o app. O app confere o privilégio de qualquer forma.
+  -->
+  <PropertyGroup Condition="'$(ExigirAdministrador)' == 'true'">
+    <ApplicationManifest>app.admin.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+</Project>

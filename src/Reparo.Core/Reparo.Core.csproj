@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- O código fica em subpastas por assunto, mas tudo usa o namespace Reparo.Core (D-023). -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Reparo.Testes" />
+  </ItemGroup>
+
+  <!-- Programas que o reparo coloca na pasta do SysPDV: Firebird 2.5.1 (D-015) e SysPDV (D-016).
+       Não vão para o git (D-022): copie-os em terceiros\ antes de compilar (terceiros\LEIA-ME.md). -->
+  <ItemGroup>
+    <ProgramaDeTerceiro Include="..\..\terceiros\firebird\fbclient.dll" LogicalName="Reparo.Core.Programas.fbclient.dll" />
+    <ProgramaDeTerceiro Include="..\..\terceiros\firebird\gbak.exe" LogicalName="Reparo.Core.Programas.gbak.exe" />
+    <ProgramaDeTerceiro Include="..\..\terceiros\firebird\gfix.exe" LogicalName="Reparo.Core.Programas.gfix.exe" />
+    <ProgramaDeTerceiro Include="..\..\terceiros\firebird\firebird.msg" LogicalName="Reparo.Core.Programas.firebird.msg" />
+    <ProgramaDeTerceiro Include="..\..\terceiros\syspdv\VerificaIndice.exe" LogicalName="Reparo.Core.Programas.VerificaIndice.exe" />
+    <ProgramaDeTerceiro Include="..\..\terceiros\syspdv\dbMonitor.exe" LogicalName="Reparo.Core.Programas.dbMonitor.exe" />
+    <EmbeddedResource Include="@(ProgramaDeTerceiro)" />
+  </ItemGroup>
+
+  <Target Name="ConferirProgramasDeTerceiros" BeforeTargets="PrepareForBuild">
+    <Error Condition="!Exists('%(ProgramaDeTerceiro.FullPath)')"
+           Text="Falta o arquivo %(ProgramaDeTerceiro.FullPath). Ele não vem no repositório: veja terceiros\LEIA-ME.md." />
+  </Target>
+
+</Project>

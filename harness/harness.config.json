@@ -1,0 +1,5 @@
+{
+  "comandoApp": "dotnet run --project src/Reparo.App -c Release -- --nao-interativo",
+  "timeoutSegundos": 300,
+  "_ajuda": "comandoApp: comando que inicia o app em modo nao interativo, executado na raiz do repositorio via cmd.exe. Exemplo: dotnet run --project src/ReparoSysPdv -- --sim. O agente preenche isto no /planejar-app."
+}

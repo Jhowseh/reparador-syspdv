@@ -1,0 +1,23 @@
+{
+  "chat.useAgentsMdFile": true,
+  "chat.promptFiles": true,
+  "github.copilot.chat.codeGeneration.useInstructionFiles": true,
+
+  "chat.tools.terminal.autoApprove": {
+    "/\\bnet(\\.exe)?\\s+(stop|start)\\b/i": false,
+    "/\\bsc(\\.exe)?\\s+(stop|start|config|delete)\\b/i": false,
+    "/\\b(tskill|taskkill|gfix|gbak|isql)(\\.exe)?\\b/i": false,
+    "/SYSPDV/i": false,
+    "/^powershell(\\.exe)? -NoProfile -ExecutionPolicy Bypass -File \\.?[\\\\/]?harness[\\\\/]executar\\.ps1\\b/": true
+  },
+
+  "files.readonlyInclude": {
+    "docs/original/**": true
+  },
+  "files.exclude": {
+    "harness/.sandbox": false
+  },
+  "[powershell]": {
+    "files.encoding": "utf8bom"
+  }
+}

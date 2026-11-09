@@ -1,0 +1,63 @@
+REPARO DO BANCO DE DADOS DO SYSPDV
+==================================
+
+Este programa substitui o antigo REPARO.CMD. Ele faz o mesmo conserto do banco, mas:
+  - faz uma cópia de segurança ANTES de mexer no banco e confere se ela deu certo;
+  - se algo der errado, para e devolve o banco original ao lugar;
+  - nunca apaga backups antigos (cada reparo usa data e hora no nome);
+  - grava tudo num arquivo de log, sem mostrar a senha.
+
+É um único arquivo: ReparoSysPDV.exe. Não precisa instalar nada nem configurar nada.
+Ele já traz o gfix, o gbak e o fbclient.dll do Firebird 2.5, o VerificaIndice e o dbMonitor, e
+coloca tudo na pasta do SysPDV quando o reparo começa. Se já houver arquivos de outra versão lá,
+eles são guardados em
+bkpBd\ferramentas-anteriores_AAAAMMDD_HHMMSS (nunca apagados). O serviço do Firebird é
+descoberto sozinho.
+
+
+COMO USAR
+---------
+1. Feche o sistema em TODOS os caixas.
+2. Copie o ReparoSysPDV.exe para o computador servidor (qualquer pasta, ex.: Área de Trabalho).
+3. Dê dois cliques nele e clique em "Sim" quando o Windows pedir permissão.
+4. Em "Banco de dados", clique em "Procurar..." e escolha o banco
+   (normalmente C:\SYSPDV\syspdv_srv.fdb — se ele existir, já vem preenchido).
+5. Digite a senha do banco de dados.
+6. Clique em "Iniciar reparo" e confirme.
+7. Aguarde. Pode levar vários minutos. Não desligue o computador.
+8. Em duas etapas vai abrir outra janela (VERIFICAINDICE e atualização do banco):
+   siga as instruções dela e feche-a quando terminar.
+9. No final aparece o resultado:
+     VERDE    = reparo concluído. O sistema é aberto automaticamente.
+     VERMELHO = o reparo não terminou. Leia a mensagem e chame o suporte.
+                Na maioria dos casos o banco original continua no lugar.
+
+O banco precisa estar na pasta do SysPDV (a pasta que tem o VERIFICAINDICE e o syspdv_server).
+Se escolher um banco em outra pasta, o programa recusa antes de mexer em qualquer coisa.
+
+
+ONDE FICAM OS ARQUIVOS (dentro da pasta do banco, ex.: C:\SYSPDV)
+--------------------------------------------------------------
+  Log de cada reparo ......... logs-reparo\reparo_AAAAMMDD_HHMMSS.log
+  Cópia de segurança (.fbk) .. bkpBd\syspdv_srv_AAAAMMDD_HHMMSS.fbk
+  Banco antigo ............... bkpBd\syspdv_srv_AAAAMMDD_HHMMSS.fdb
+A pasta bkpBd cresce a cada reparo. Apague os arquivos antigos de vez em quando
+(depois de conferir que o sistema está funcionando).
+
+
+PARA O TÉCNICO (opcional)
+-------------------------
+Códigos de saída: 0 = sucesso | 1 = falhou (banco original preservado ou banco novo válido,
+veja a mensagem) | 2 = cancelado | 3 = erro inesperado | 4 = configuração inválida |
+5 = GRAVE: falhou e não conseguiu devolver o banco original (veja o log).
+
+O gfix/gbak/fbclient 2.5 precisam do "Visual C++ 2005 Redistributable (x86)", que o instalador
+do Firebird 2.5 já coloca. Se faltar, o reparo avisa antes de começar.
+
+Se a detecção automática do Firebird não funcionar numa loja, crie um "reparo.json" ao lado do
+.exe (modelo: reparo.exemplo.json no repositório) só com o que precisar mudar, ex.:
+    { "ferramentas": { "gbak": "D:\\Firebird\\bin\\gbak.exe", "gfix": "D:\\Firebird\\bin\\gfix.exe" } }
+
+O modo sem janela (--nao-interativo) é só para os testes automáticos do programa. Numa loja ele
+recusa (código 4) sem mexer em nada, porque o VERIFICAINDICE e a atualização precisam de alguém
+na frente da tela. Use sempre o programa com dois cliques.

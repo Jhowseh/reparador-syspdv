@@ -1,0 +1,7 @@
+{
+  "nome": "normal",
+  "descricao": "Tudo funciona. O app deve reparar o banco (backup + restore) e reabrir o sistema.",
+  "servicoInicial": "iniciado",
+  "falhas": [],
+  "esperado": { "sucesso": true, "bancoFinal": "restaurado" }
+}

@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File harness/executar.ps1:*)",
+      "Bash(powershell.exe -NoProfile -ExecutionPolicy Bypass -File harness/executar.ps1:*)"
+    ],
+    "deny": [
+      "Bash(net stop:*)",
+      "Bash(net start:*)",
+      "Bash(net.exe stop:*)",
+      "Bash(net.exe start:*)",
+      "Bash(sc stop:*)",
+      "Bash(sc start:*)",
+      "Bash(sc config:*)",
+      "Bash(sc.exe stop:*)",
+      "Bash(sc.exe start:*)",
+      "Bash(sc.exe config:*)",
+      "Bash(tskill:*)",
+      "Bash(taskkill:*)",
+      "Bash(gfix:*)",
+      "Bash(gbak:*)",
+      "Bash(isql:*)",
+      "Bash(gfix.exe:*)",
+      "Bash(gbak.exe:*)",
+      "Bash(isql.exe:*)",
+      "Edit(harness/**)",
+      "Write(harness/**)"
+    ]
+  }
+}

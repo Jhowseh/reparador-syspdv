@@ -1,0 +1,15 @@
+{
+  "nome": "banco-corrompido",
+  "descricao": "A primeira validacao (gfix -v) encontra erros. Isso e esperado: e o motivo do reparo. O app deve continuar.",
+  "servicoInicial": "iniciado",
+  "falhas": [
+    {
+      "ferramenta": "gfix",
+      "modo": "validar",
+      "ocorrencia": 1,
+      "codigoSaida": 1,
+      "mensagem": "Summary of validation errors\n\n\tNumber of record level errors\t: 3\n\tNumber of index page errors\t: 1"
+    }
+  ],
+  "esperado": { "sucesso": true, "bancoFinal": "restaurado" }
+}
