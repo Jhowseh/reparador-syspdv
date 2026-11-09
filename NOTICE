@@ -1,0 +1,23 @@
+Reparo SysPDV
+Copyright 2026 PBtec - Soluções em Automação
+
+Este produto foi desenvolvido pela PBtec - Soluções em Automação
+(José Henrique, Erick Henrique, Eduardo Vasconcelos).
+
+Licenciado sob a Apache License, Version 2.0 (arquivo LICENSE).
+
+Programas de terceiros
+----------------------
+Este repositório NÃO contém programas de terceiros. Para compilar, os arquivos
+abaixo precisam ser obtidos separadamente (lista em terceiros/LEIA-ME.md) e são
+embutidos no ReparoSysPDV.exe gerado. Eles NÃO estão cobertos por esta licença
+e continuam sob as licenças dos seus donos:
+
+- gfix, gbak, fbclient.dll e firebird.msg: Firebird 2.5.1, da Firebird
+  Foundation, sob a InterBase Public License (IPL) e a Initial Developer's
+  Public License (IDPL). https://firebirdsql.org/
+- VerificaIndice: parte do SysPDV, software proprietário do seu respectivo dono.
+- dbMonitor: Devart dbMonitor, software proprietário da Devart.
+
+Firebird é marca da Firebird Foundation. SysPDV e dbMonitor pertencem aos seus
+respectivos donos.

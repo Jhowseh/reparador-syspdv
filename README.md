@@ -76,3 +76,9 @@ PBtec — Soluções em Automação. Equipe: José Henrique, Erick Henrique, Edu
 
 Firebird é marca da Firebird Foundation. SysPDV e dbMonitor pertencem aos seus respectivos donos;
 os programas deles não fazem parte deste repositório.
+
+## Licença
+
+[Apache License 2.0](LICENSE). Quem redistribuir o código ou o `.exe` precisa manter o arquivo
+[`NOTICE`](NOTICE) junto. Os programas de terceiros embutidos no `.exe` não estão cobertos por
+esta licença (veja o `NOTICE`).
