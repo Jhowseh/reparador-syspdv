@@ -28,7 +28,7 @@ SysPDV **de verdade**, num ambiente onde nada pode dar prejuízo.
 | 3 | Log sem senha | Procurar a senha no log e na tela | A senha não aparece em lugar nenhum (só `********`) |
 | 4 | Senha errada | Digitar uma senha errada e iniciar | Para na etapa "Verificar o banco (1 de 3)" com a mensagem de senha incorreta; não chega ao backup; banco original no lugar; Firebird ligado |
 | 4b | Sem conexão | Só se o computador tiver outra versão do Firebird: rodar normalmente | Para na etapa "Verificar o banco (1 de 3)" com "não foi possível conectar ao banco de dados"; o Firebird reinicia só uma vez no começo; banco original no lugar (D-014) |
-| 5 | Backup falha | Deixar a pasta `bkpBd` somente leitura (Propriedades > Segurança: negar gravação) e rodar | Para no backup; banco original no lugar; `.fbk.incompleto` (se criado); Firebird ligado |
+| 5 | Backup falha | Deixar a pasta `bkpBd` somente leitura (Propriedades > Segurança: negar gravação) e rodar | Para no backup; termina VERMELHO "devolvido ao lugar"; banco original de volta em `C:\SYSPDV`; `.fbk.incompleto` (se criado); Firebird ligado |
 | 6 | Serviço já parado | Parar o serviço do Firebird antes e rodar | Segue normalmente e termina VERDE |
 | 7 | Caixa conectado | Deixar o SysPDV aberto em outro computador da rede e rodar | Serviço para (ou é encerrado à força, com aviso no log); reparo termina; o caixa precisa reconectar |
 | 8 | Restore falha (opcional) | Com banco grande: durante a etapa "Reconstruir o banco", parar o serviço do Firebird pelo `services.msc` | Desfaz: apaga o parcial, devolve o original, liga o Firebird, termina VERMELHO "devolvido ao lugar" |
@@ -36,6 +36,7 @@ SysPDV **de verdade**, num ambiente onde nada pode dar prejuízo.
 | 10 | Banco fora da pasta do SysPDV | Copiar o `.fdb` para uma pasta qualquer (ex.: `C:\Teste\`) e escolher essa cópia | Recusa antes de parar o Firebird, dizendo que a pasta não é a do SysPDV; nenhum arquivo daquela pasta é apagado |
 | 11 | Fechar no meio | Tentar fechar a janela durante o reparo | Não deixa fechar e explica o motivo |
 | 12 | Linha de comando recusada | `start /wait ReparoSysPDV.exe --nao-interativo` num prompt de administrador | Código de saída 4 (`echo %ERRORLEVEL%`); o log diz que o modo sem janela é só para testes; nenhuma linha de `net stop`; banco intacto (D-013) |
+| 13 | Banco danificado com o SysPDVService rodando | Repetir o reparo de 11/11 (banco de 5,9 GB com erros na `TRANSACAO_XMLNOTA`), sem parar o `SysPDVService` | No log, os três `gfix` e o `gbak -b` usam `C:\SYSPDV\bkpBd\syspdv_srv_<data-hora>.fdb`; não aparece *"bad parameters on attach"* nem *"secondary server attachments"*; a 1ª verificação mostra aviso com a quantidade de erros (não "nenhum problema"); "Consertar o banco (2 de 3)" roda de verdade (no `firebird.log`, nenhum *"XNET server initialization failed"*; a 3ª verificação acha menos erros que a 1ª); o backup passa da `TRANSACAO_XMLNOTA` (D-025, D-026) |
 
 ## Registro
 

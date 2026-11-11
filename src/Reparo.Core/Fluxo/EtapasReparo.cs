@@ -88,23 +88,23 @@ public sealed class EtapasReparo
         new() { Descricao = "Conferir se está tudo pronto", Executar = PreChecagens },
         new() { Descricao = "Parar o Firebird", Executar = _firebird.Parar },
         new() { Descricao = "Apagar arquivos temporários", Executar = Limpar, Critica = false },
+        // D-025: com o banco fora da pasta, nenhum caixa nem programa local consegue se conectar a ele
+        // (com qualquer usuário). O gfix e o backup trabalham no arquivo guardado; se algo falhar, ele volta.
+        new() { Descricao = "Guardar o banco atual na pasta de backup", Executar = GuardarBancoOriginal, Desfazer = DevolverBancoOriginal },
         new() { Descricao = "Ligar o Firebird", Executar = _firebird.Ligar },
         // Crítica só por causa da senha: erros de validação viram aviso; senha errada para tudo.
         new() { Descricao = "Verificar o banco de dados (1 de 3)", Executar = PrimeiraVerificacao },
         new() { Descricao = "Reiniciar o Firebird", Executar = _firebird.Reiniciar },
-        new() { Descricao = "Consertar o banco de dados (2 de 3)", Executar = () => Gfix("-m", "-f", "-i"), Critica = false },
+        new() { Descricao = "Consertar o banco de dados (2 de 3)", Executar = Consertar, Critica = false },
         new() { Descricao = "Reiniciar o Firebird", Executar = _firebird.Reiniciar },
         new() { Descricao = "Verificar o banco de dados (3 de 3)", Executar = () => Gfix("-v", "-f"), Critica = false },
         new() { Descricao = "Reiniciar o Firebird", Executar = _firebird.Reiniciar },
         new() { Descricao = "Fazer a cópia de segurança (backup)", Executar = Backup },
-        new() { Descricao = "Parar o Firebird", Executar = _firebird.Parar },
-        new() { Descricao = "Guardar o banco atual na pasta de backup", Executar = GuardarBancoOriginal, Desfazer = DevolverBancoOriginal },
-        new() { Descricao = "Ligar o Firebird", Executar = _firebird.Ligar },
         new() { Descricao = "Reconstruir o banco a partir do backup (restore)", Executar = Restore },
         // O gfix -v só valida sem outras conexões abertas (Firebird 2.5): reinicia antes, como nas outras verificações.
         new() { Descricao = "Reiniciar o Firebird", Executar = _firebird.Reiniciar },
         // R5: só depois de conferido o banco novo vira definitivo; se falhar, o original volta ao lugar.
-        new() { Descricao = "Conferir o banco reconstruído", Executar = ConferirBancoRestaurado, PontoSemVolta = true },
+        new() { Descricao = "Conferir o banco reconstruído", Executar = ConferirBancoNovo, PontoSemVolta = true },
         new() { Descricao = "Reativar os índices (VERIFICAINDICE)", Executar = () => ProgramaComJanela("VERIFICAINDICE", "reativar os índices") },
         new() { Descricao = "Abrir o monitor do banco (dbMonitor)", Executar = () => ProgramaSemEsperar("dbMonitor"), Critica = false },
         new() { Descricao = "Atualizar o banco de dados (atualizasyspdv_server)", Executar = () => ProgramaComJanela("atualizasyspdv_server", "atualizar o banco") },
@@ -118,7 +118,12 @@ public sealed class EtapasReparo
         var avisos = new List<string>();
 
         if (!File.Exists(_cfg.CaminhoBanco))
-            return ResultadoEtapa.Falha($"o banco de dados não foi encontrado em {_cfg.CaminhoBanco}");
+        {
+            // D-025: um reparo interrompido (ex.: falta de luz) pode ter deixado o banco em bkpBd.
+            var guardado = UltimoBancoGuardado();
+            return ResultadoEtapa.Falha($"o banco de dados não foi encontrado em {_cfg.CaminhoBanco}" +
+                (guardado is null ? "" : $". Se um reparo anterior foi interrompido, o banco pode estar em {guardado}. Chame o suporte"));
+        }
 
         // A limpeza apaga srv*, *log, *txt... da pasta do banco: só se for mesmo a pasta do SysPDV.
         if (!PareceAPastaDoSysPdv())
@@ -174,6 +179,25 @@ public sealed class EtapasReparo
         _registro.Info($"O banco atual será guardado em: {CaminhoBancoGuardado}");
 
         return avisos.Count == 0 ? ResultadoEtapa.Ok() : ResultadoEtapa.Aviso(string.Join("; ", avisos));
+    }
+
+    private string? UltimoBancoGuardado()
+    {
+        if (!Directory.Exists(_cfg.PastaBackupBanco))
+            return null;
+
+        var nome = Path.GetFileNameWithoutExtension(_cfg.CaminhoBanco);
+        var extensao = Path.GetExtension(_cfg.CaminhoBanco);
+        try
+        {
+            return Directory.EnumerateFiles(_cfg.PastaBackupBanco, $"{nome}_*{extensao}", SearchOption.TopDirectoryOnly)
+                .OrderByDescending(File.GetLastWriteTimeUtc)
+                .FirstOrDefault();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
     }
 
     // ------------------------------------------------------------------ limpeza (R03, R14)
@@ -264,13 +288,52 @@ public sealed class EtapasReparo
 
     private ResultadoEtapa Gfix(params string[] opcoes) => Gfix(false, opcoes);
 
-    private ResultadoEtapa Gfix(bool conferirSenha, params string[] opcoes)
+    private ResultadoEtapa Gfix(bool conferirSenha, params string[] opcoes) =>
+        InterpretarGfix(ExecutarGfix(opcoes), conferirSenha);
+
+    /// <summary>
+    /// D-026: o conserto é o que deixa o backup passar pelos registros danificados. Se o gfix nem
+    /// conseguiu falar com o banco, reinicia o Firebird e tenta mais uma vez.
+    /// </summary>
+    private ResultadoEtapa Consertar()
     {
-        var r = _executor.Executar("gfix", opcoes.Append(_cfg.CaminhoBanco).ToArray(),
+        var opcoes = new[] { "-m", "-f", "-i" };
+        var r = ExecutarGfix(opcoes);
+        if (r.Sucesso || !(PerdeuConexao(r.Saida) || NaoPodeValidarAgora(r.Saida)))
+            return InterpretarConserto(r);
+
+        _registro.Aviso("O conserto não conseguiu falar com o banco. Reiniciando o Firebird para tentar mais uma vez.");
+        var reinicio = _firebird.Reiniciar();
+        if (reinicio.Status == StatusEtapa.Falha)
+            return ResultadoEtapa.Aviso($"o conserto não foi feito e o Firebird não reiniciou ({reinicio.Mensagem})");
+
+        return InterpretarConserto(ExecutarGfix(opcoes));
+    }
+
+    /// <summary>O resumo do gfix -m lista o que ele tratou: não é sinal de que o conserto falhou.</summary>
+    private ResultadoEtapa InterpretarConserto(ResultadoProcesso r)
+    {
+        var erros = ErrosDeValidacao(r.Saida);
+        if (r.Sucesso && erros > 0)
+            return ResultadoEtapa.Aviso($"o conserto tratou {erros} erro(s) do banco; o reparo vai continuar");
+
+        return InterpretarGfix(r, conferirSenha: false);
+    }
+
+    // D-025: o gfix trabalha no banco já guardado em bkpBd, onde ninguém mais o encontra.
+    private ResultadoProcesso ExecutarGfix(string[] opcoes) =>
+        _executor.Executar("gfix", opcoes.Append(CaminhoBancoGuardado).ToArray(),
             new OpcoesProcesso { UsarCredenciais = true });
 
-        if (r.Sucesso)
+    private ResultadoEtapa InterpretarGfix(ResultadoProcesso r, bool conferirSenha)
+    {
+        // O gfix 2.5 termina com código 0 mesmo listando erros: o resumo é que diz se há danos.
+        var erros = ErrosDeValidacao(r.Saida);
+        if (r.Sucesso && erros == 0)
             return ResultadoEtapa.Ok("nenhum problema encontrado");
+
+        if (r.Sucesso)
+            return ResultadoEtapa.Aviso($"o gfix encontrou {erros} erro(s) no banco; o reparo vai continuar");
 
         if (conferirSenha && SenhaRecusada(r.Saida))
             return ResultadoEtapa.Falha("a senha do banco de dados está incorreta (ou o usuário não existe). " +
@@ -284,9 +347,28 @@ public sealed class EtapasReparo
             return ResultadoEtapa.Falha($"não foi possível conectar ao banco de dados (resposta do Firebird: \"{PrimeiraLinha(r.Saida)}\"). " +
                                         "Pode haver outra versão do Firebird neste computador. Chame o suporte");
 
+        // Não é dano no banco: o gfix nem entrou, então esta etapa não foi feita (caso real de 11/11/2026).
+        if (NaoPodeValidarAgora(r.Saida))
+            return ResultadoEtapa.Aviso("o gfix não conseguiu entrar no banco porque outro programa estava conectado nele; " +
+                                        "esta etapa não foi feita");
+
+        // Também não é dano: o Firebird não respondeu (caso real de 11/11/2026, D-026).
+        if (PerdeuConexao(r.Saida))
+            return ResultadoEtapa.Aviso($"o gfix perdeu a conexão com o Firebird (\"{PrimeiraLinha(r.Saida)}\"); " +
+                                        "esta etapa não foi feita");
+
         // Erros aqui são esperados (são o motivo do reparo). O backup é que decide se dá para seguir.
         return ResultadoEtapa.Aviso($"o gfix encontrou problemas (código {r.CodigoSaida}); o reparo vai continuar");
     }
+
+    /// <summary>
+    /// Soma os "Number of ... errors : N" do resumo do gfix ("Summary of validation errors").
+    /// Sem resumo, 0.
+    /// </summary>
+    internal static int ErrosDeValidacao(string saida) =>
+        System.Text.RegularExpressions.Regex
+            .Matches(saida, @"Number of [^\r\n:]*errors\s*:\s*(\d+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+            .Sum(m => int.TryParse(m.Groups[1].Value, out var n) ? n : 0);
 
     /// <summary>Mensagem do Firebird 2.5 para usuário/senha inválidos.</summary>
     internal static bool SenhaRecusada(string saida) =>
@@ -307,9 +389,19 @@ public sealed class EtapasReparo
         "unsupported on-disk structure",         // banco de outra versão do Firebird
     };
 
-    /// <summary>gfix -v recusado porque há outras conexões no banco (não diz nada sobre danos).</summary>
+    /// <summary>
+    /// gfix -v/-m recusado porque há outras conexões no banco (não diz nada sobre danos). O -m responde
+    /// só a primeira linha ("bad parameters on attach..."); o -v também traz a segunda.
+    /// </summary>
     internal static bool NaoPodeValidarAgora(string saida) =>
-        saida.Contains("secondary server attachments cannot validate", StringComparison.OrdinalIgnoreCase);
+        saida.Contains("secondary server attachments cannot validate", StringComparison.OrdinalIgnoreCase)
+        || saida.Contains("bad parameters on attach or create database", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>A conexão com o Firebird caiu ou ficou sem resposta no meio do comando (não é dano no banco).</summary>
+    internal static bool PerdeuConexao(string saida) =>
+        saida.Contains("Error reading data from the connection", StringComparison.OrdinalIgnoreCase)
+        || saida.Contains("Error writing data to the connection", StringComparison.OrdinalIgnoreCase)
+        || saida.Contains("connection shutdown", StringComparison.OrdinalIgnoreCase);
 
     internal static bool FalhaDeConexao(string saida) =>
         SinaisDeFalhaDeConexao.Any(s => saida.Contains(s, StringComparison.OrdinalIgnoreCase));
@@ -324,7 +416,7 @@ public sealed class EtapasReparo
 
     private ResultadoEtapa Backup()
     {
-        var r = _executor.Executar("gbak", new[] { "-b", "-v", "-i", "-g", "-l", _cfg.CaminhoBanco, CaminhoBackupFbk },
+        var r = _executor.Executar("gbak", new[] { "-b", "-v", "-i", "-g", "-l", CaminhoBancoGuardado, CaminhoBackupFbk },
             new OpcoesProcesso { UsarCredenciais = true });
 
         var tamanho = File.Exists(CaminhoBackupFbk) ? new FileInfo(CaminhoBackupFbk).Length : 0;
@@ -336,7 +428,8 @@ public sealed class EtapasReparo
 
         MarcarBackupIncompleto();
         var motivo = r.Sucesso ? "o arquivo de backup ficou vazio" : $"o gbak terminou com erro (código {r.CodigoSaida})";
-        return ResultadoEtapa.Falha($"o backup não deu certo: {motivo}. O banco de dados não foi alterado");
+        // Sem "o banco não foi alterado": o gfix -m pode ter mexido nele. A mensagem final diz que ele voltou.
+        return ResultadoEtapa.Falha($"o backup não deu certo: {motivo}");
     }
 
     private void MarcarBackupIncompleto()
@@ -359,12 +452,9 @@ public sealed class EtapasReparo
 
     // ------------------------------------------------------------------ troca do banco (R13) e restore (R12)
 
+    /// <summary>Firebird parado: tira o banco do lugar (R11 revisada em D-025). Desfeito por DevolverBancoOriginal.</summary>
     private ResultadoEtapa GuardarBancoOriginal()
     {
-        // Confere de novo: só tira o banco do lugar com um backup bom (R11).
-        if (!File.Exists(CaminhoBackupFbk) || new FileInfo(CaminhoBackupFbk).Length == 0)
-            return ResultadoEtapa.Falha("o arquivo de backup não existe ou está vazio");
-
         CaminhoBancoGuardado = NomeLivre(CaminhoBancoGuardado);
         File.Move(_cfg.CaminhoBanco, CaminhoBancoGuardado, overwrite: false);
         BancoOriginalForaDoLugar = true;
@@ -395,6 +485,37 @@ public sealed class EtapasReparo
         return ResultadoEtapa.Ok("banco original devolvido ao lugar");
     }
 
+    /// <summary>
+    /// Para erro inesperado que escapa do fluxo (o motor não chega a desfazer): devolve o banco original
+    /// se ele ainda estiver fora do lugar e o banco novo não tiver sido conferido. Não lança exceção.
+    /// </summary>
+    public void DevolverSeInterrompido()
+    {
+        if (!BancoOriginalForaDoLugar || _bancoNovoConferido)
+            return;
+
+        _registro.Aviso("O reparo foi interrompido com o banco fora do lugar. Devolvendo o banco original...");
+        try
+        {
+            var r = DevolverBancoOriginal();
+            if (r.Status == StatusEtapa.Falha)
+                _registro.Erro("NÃO foi possível devolver o banco original: " + r.Mensagem);
+        }
+        catch (Exception ex)
+        {
+            _registro.Erro($"NÃO foi possível devolver o banco original ({CaminhoBancoGuardado}): {ex}");
+        }
+    }
+
+    private bool _bancoNovoConferido;
+
+    private ResultadoEtapa ConferirBancoNovo()
+    {
+        var r = ConferirBancoRestaurado();
+        _bancoNovoConferido = r.Status != StatusEtapa.Falha;
+        return r;
+    }
+
     private ResultadoEtapa Restore()
     {
         var r = _executor.Executar("gbak", new[] { "-c", "-v", "-i", CaminhoBackupFbk, _cfg.CaminhoBanco },
@@ -415,8 +536,13 @@ public sealed class EtapasReparo
         var r = _executor.Executar("gfix", new[] { "-v", "-f", _cfg.CaminhoBanco },
             new OpcoesProcesso { UsarCredenciais = true });
 
-        if (r.Sucesso)
+        var erros = ErrosDeValidacao(r.Saida);
+        if (r.Sucesso && erros == 0)
             return ResultadoEtapa.Ok("nenhum problema encontrado no banco novo");
+
+        if (r.Sucesso)
+            return ResultadoEtapa.Falha($"o banco reconstruído não passou na conferência ({erros} erro(s)). " +
+                                        $"A cópia de segurança continua guardada em {CaminhoBackupFbk}");
 
         // Não é dano no banco: algum programa se conectou nele e o gfix não pôde validar. O restore
         // já terminou com sucesso; devolver o banco antigo por isso seria pior (D-017).

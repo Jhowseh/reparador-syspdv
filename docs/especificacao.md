@@ -66,7 +66,7 @@ O backup + restore reconstrói o banco do zero, o que elimina lixo e corrupçõe
 
 ### Segurança dos dados
 - **R10** Parar no primeiro erro crítico (backup ou restore) e não seguir para as etapas seguintes.
-- **R11** Só tirar o banco original do lugar depois de um backup bem-sucedido (código de saída 0 e arquivo `.fbk` com tamanho > 0).
+- **R11** Só colocar um banco novo no lugar do original (restore) depois de um backup bem-sucedido (código de saída 0 e arquivo `.fbk` com tamanho > 0). Até lá o original fica guardado em `bkpBd` e volta ao lugar se algo falhar (revisada em D-025: antes o original só saía do lugar depois do backup).
 - **R12** Se o restore falhar: apagar o banco parcial, devolver o original ao lugar e deixar o serviço rodando.
 - **R13** Guardar o banco original em `bkpBd` com data e hora no nome; nunca sobrescrever backups.
 - **R14** Não apagar nada fora da pasta base.

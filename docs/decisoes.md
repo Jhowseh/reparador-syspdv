@@ -454,3 +454,70 @@ Modelo:
   - Tag do release = `v` + `<Version>` do `Reparo.App.csproj` (primeira: `v1.0.0`).
 - Consequências: o código-fonte continua sem programas de terceiros; quem baixa o release recebe
   o pacote pronto para a loja.
+
+## D-025 — Banco fora do lugar durante o gfix e o backup; resumo do gfix lido de verdade
+- Data: 2026-11-11
+- Status: aprovada (escolha do usuário entre mover o banco, `gfix -shut` e trocar a porta)
+- Contexto: no reparo real de 11/11 (banco de 5,9 GB), o `gfix -m` (conserto) e a 3ª verificação
+  foram recusados com *"bad parameters on attach or create database"* / *"secondary server
+  attachments cannot validate databases"*: outro programa se conectava ao banco segundos depois de
+  o Firebird ligar (o `firebird.log` registrou 2 conexões ao reiniciar; o `SysPDVService.exe`
+  rodava na máquina). Sem o conserto, o `gbak` parou num registro danificado da tabela
+  `TRANSACAO_XMLNOTA` (*"wrong record length"*, bugcheck). Também se viu que:
+  - o `gfix -v` do Firebird 2.5 sai com código 0 mesmo listando erros; o app dizia "nenhum problema
+    encontrado" com 8 erros no resumo;
+  - quando o gfix nem entrava no banco, o app dizia "o gfix encontrou problemas".
+- Alternativas: trocar o IP do servidor (mexe na rede inteira) ou a porta no `firebird.conf` (como
+  a equipe fazia à mão) só barram os caixas da rede, não programas do próprio servidor (conexão
+  local). `gfix -shut single` só barra quem não é SYSDBA, e o SysPDV costuma entrar como SYSDBA.
+- Decisão:
+  - "Guardar o banco atual na pasta de backup" passa para logo depois da limpeza, com o Firebird
+    parado. Os três `gfix` e o backup rodam no arquivo guardado (`bkpBd\syspdv_srv_<data-hora>.fdb`),
+    que nenhum caixa ou programa local conhece, com qualquer usuário. O restore cria o banco novo no
+    lugar de sempre. Saíram as etapas "Parar"/"Ligar" que ficavam em volta do antigo "Guardar".
+  - O desfazer é o mesmo de antes (para o Firebird, apaga um banco parcial, devolve o original),
+    agora valendo também para falha no backup. A mensagem do backup deixou de dizer "o banco não
+    foi alterado" (o `gfix -m` pode ter mexido nele); a mensagem final diz que ele foi devolvido.
+  - Erro inesperado fora das etapas (ex.: a tela caiu) com o banco fora do lugar: o `Reparador`
+    devolve o original antes de relançar o erro, salvo se o banco novo já foi conferido.
+  - Se o banco não estiver no lugar ao começar, as pré-checagens apontam o `.fdb` mais recente de
+    `bkpBd` (reparo anterior interrompido, ex.: falta de luz).
+  - `gfix`: o resumo ("Number of ... errors : N") é somado; código 0 com erros vira aviso com a
+    quantidade (e, na conferência do banco reconstruído, falha). "bad parameters on attach..."
+    também conta como "outro programa conectado": aviso dizendo que a etapa não foi feita.
+  - R11 revisada na especificação.
+- Consequências: os caixas recebem "arquivo não encontrado" (em vez de "banco em uso") até o
+  restore terminar. Se a luz cair no meio, o sistema não abre até alguém devolver o banco de
+  `bkpBd` (o próximo reparo aponta onde ele está). Etapas: 19 no harness, 20 com a cópia dos
+  programas. O harness não mudou: ele não simula conexões simultâneas, então esse caso fica coberto
+  pelos testes de unidade e pelo teste real.
+
+## D-026 — Esperar o processo do Firebird fechar; repetir o conserto que perdeu a conexão
+- Data: 2026-11-11
+- Status: aprovada (pedido do usuário)
+- Contexto: no segundo reparo real de 11/11, já com D-025, o reinício do Firebird depois da 1ª
+  verificação ligou o serviço com o `fbserver.exe` antigo ainda fechando. O `firebird.log` registrou
+  *"XNET server initialization failed. Probably another instance of server is already running"*
+  (o XNET é a conexão local que o gfix e o gbak usam). O `gfix -m` ficou 355 s esperando e desistiu
+  com *"Error reading data from the connection – tempo limite de espera"*, sem mexer no banco: a 3ª
+  verificação achou os mesmos 8 erros da 1ª e o backup parou no mesmo registro da `TRANSACAO_XMLNOTA`.
+  O app ainda chamou isso de "o gfix encontrou problemas".
+- Decisão:
+  - Depois de cada `net stop` que deu certo (ou "já estava parado"), o app espera o processo
+    configurado (`processoFirebird`, padrão `fbserver.exe`) sumir, até `tempoLimitePararServicoSegundos`.
+    Se não sumir, encerra com `taskkill` (aviso "o Firebird demorou a fechar"), como em R25.
+    No modo teste não espera: o harness não tem Firebird de verdade, e o desta máquina não conta.
+  - Nova consulta `IAmbienteSistema.EsperarProcessoTerminar` (lista de processos do .NET, sem
+    processo externo).
+  - "Error reading data from the connection", "Error writing data to the connection" e
+    "connection shutdown" contam como "perdeu a conexão com o Firebird": aviso dizendo que a etapa
+    não foi feita (não é dano no banco).
+  - "Consertar o banco de dados (2 de 3)": se o `gfix -m` perder a conexão ou for barrado por outra
+    conexão, o app reinicia o Firebird e tenta **mais uma vez**. Só uma: se falhar de novo, fica o aviso.
+  - Quando o `gfix -m` termina listando erros no resumo, o aviso diz "o conserto tratou N erro(s)"
+    (antes dizia "encontrou", o que parecia falha). No terceiro reparo real de 11/11, com D-026, o
+    conserto tratou 8 erros, a página danificada da `TRANSACAO_XMLNOTA` saiu da lista e o reparo
+    terminou com sucesso (472.256 registros nessa tabela no backup e no restore).
+- Consequências: cada parada do Firebird pode levar alguns segundos a mais. Se houver outra instância
+  do Firebird com o mesmo nome de processo, a espera vai até o tempo limite e o `taskkill` encerra as
+  duas (já era assim quando o `net stop` falhava).

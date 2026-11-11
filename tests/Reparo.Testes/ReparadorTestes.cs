@@ -122,8 +122,52 @@ public sealed class ReparadorTestes : IDisposable
         Assert.Equal(-1, _sim.Chamadas.FindIndex(c => c.Modo == "restore"));
         Assert.False(File.Exists(Fbk));
         Assert.True(File.Exists(Fbk + ".incompleto"));
+        Assert.False(File.Exists(Guardado));
         Assert.True(_sim.ServicoLigado);
-        Assert.Contains("não foi alterado", _interacao.Avisos.Last());
+        Assert.Contains("devolvido ao lugar", _interacao.Avisos.Last());
+    }
+
+    [Fact]
+    public void Gfix_e_backup_trabalham_no_banco_ja_fora_do_lugar()
+    {
+        // D-025: com o banco fora da pasta, nenhum caixa ou programa local consegue se conectar a ele.
+        Assert.Equal(CodigoSaida.Sucesso, Rodar());
+
+        var restore = Indice("gbak", "restore");
+        var antesDoRestore = _sim.Chamadas.Take(restore).ToList();
+        var gfix = antesDoRestore.Where(c => c.Ferramenta == "gfix").ToList();
+        Assert.Equal(3, gfix.Count);
+        Assert.All(gfix, c => Assert.Equal(Guardado, c.Argumentos[^1]));
+        Assert.Equal(Guardado, _sim.Chamadas[Indice("gbak", "backup")].Argumentos[^2]);
+        Assert.Equal(new[] { Fbk, _banco }, _sim.Chamadas[restore].Argumentos[^2..]);
+
+        // O banco sai do lugar com o Firebird parado, antes de ele ligar para o primeiro gfix.
+        var guardar = _interacao.Progresso.FindIndex(p => p.Contains("Guardar o banco atual"));
+        var primeiraVerificacao = _interacao.Progresso.FindIndex(p => p.Contains("Verificar o banco de dados (1 de 3)"));
+        Assert.True(guardar < primeiraVerificacao);
+        Assert.EndsWith(" Parar o Firebird", _interacao.Progresso[guardar - 2]);
+        Assert.EndsWith(" Ligar o Firebird", _interacao.Progresso[guardar + 1]);
+    }
+
+    [Fact]
+    public void Erro_inesperado_com_o_banco_fora_do_lugar_devolve_o_original()
+    {
+        _interacao.ExplodirNaEtapa = 6; // etapa 4 guardou o banco; etapa 6 é a primeira verificação
+
+        Assert.Throws<InvalidOperationException>(() => Rodar());
+        Assert.Equal("ORIGINAL", File.ReadAllText(_banco));
+        Assert.False(File.Exists(Guardado));
+        Assert.True(_sim.ServicoLigado);
+    }
+
+    [Fact]
+    public void Banco_sumido_de_reparo_interrompido_aponta_onde_ele_esta()
+    {
+        File.Move(_banco, Path.Combine(_base, "bkpBd", "syspdv_srv_20261102_090000.fdb"));
+
+        Assert.Equal(CodigoSaida.FalhaNoReparo, Rodar());
+        Assert.Contains("syspdv_srv_20261102_090000.fdb", _interacao.Avisos.Last());
+        Assert.DoesNotContain(_sim.Chamadas, c => c.Ferramenta == "net" && c.Modo == "stop");
     }
 
     [Fact]
@@ -251,7 +295,7 @@ public sealed class ReparadorTestes : IDisposable
         var parar = _interacao.Progresso.FindIndex(p => p.Contains("Parar o Firebird"));
         Assert.Equal(1, copia); // logo depois das pré-checagens
         Assert.True(copia < parar);
-        Assert.Equal(22, _interacao.Terminadas.Count);
+        Assert.Equal(20, _interacao.Terminadas.Count);
     }
 
     [Fact]
@@ -459,9 +503,135 @@ public sealed class ReparadorTestes : IDisposable
 
         Rodar();
 
-        Assert.Equal(21, _interacao.Terminadas.Count);
+        Assert.Equal(19, _interacao.Terminadas.Count);
         Assert.Contains(_interacao.Terminadas, t => t.Status == StatusEtapa.Aviso);
         Assert.True(_interacao.Sucesso);
+    }
+
+    private (StatusEtapa Status, string Log) ResultadoDaEtapa(string descricao)
+    {
+        var indice = _interacao.Progresso.FindIndex(p => p.EndsWith(" " + descricao));
+        var log = _registro.Linhas.Last(l => l.Contains("Etapa conclu") && l.Contains(descricao));
+        return (_interacao.Terminadas[indice].Status, log);
+    }
+
+    [Fact]
+    public void Validacao_com_codigo_zero_mas_com_erros_no_resumo_vira_aviso()
+    {
+        // Caso real (11/11/2026): gfix -v saiu com 0 listando 8 erros e o app disse "nenhum problema".
+        _sim.RespostasGfix["validar"] = (0,
+            "Summary of validation errors\n\n\tNumber of record level errors\t: 2\n\tNumber of data page errors\t: 1\n" +
+            "\tNumber of index page errors\t: 2\n\tNumber of database page errors\t: 3");
+
+        Assert.Equal(CodigoSaida.Sucesso, Rodar());
+
+        var (status, log) = ResultadoDaEtapa("Verificar o banco de dados (1 de 3)");
+        Assert.Equal(StatusEtapa.Aviso, status);
+        Assert.Contains("encontrou 8 erro(s)", log);
+        Assert.DoesNotContain("nenhum problema", log);
+    }
+
+    [Fact]
+    public void Conserto_barrado_por_outra_conexao_diz_que_nao_foi_feito()
+    {
+        // Caso real (11/11/2026): o gfix -m nem entrou no banco e o app disse "encontrou problemas".
+        _sim.RespostasGfix["mend"] = (1, "bad parameters on attach or create database");
+
+        Rodar();
+
+        var (status, log) = ResultadoDaEtapa("Consertar o banco de dados (2 de 3)");
+        Assert.Equal(StatusEtapa.Aviso, status);
+        Assert.Contains("outro programa estava conectado", log);
+        Assert.Contains("não foi feita", log);
+    }
+
+    [Fact]
+    public void Conserto_que_perde_a_conexao_reinicia_o_Firebird_e_tenta_de_novo()
+    {
+        // Caso real (11/11/2026): Firebird ligado por cima do processo antigo; o gfix -m esperou 6 min e desistiu.
+        _sim.MendSemConexao = 1;
+
+        Assert.Equal(CodigoSaida.Sucesso, Rodar());
+
+        var mends = _sim.Chamadas.Select((c, i) => (c, i)).Where(x => x.c.Modo == "mend").ToList();
+        Assert.Equal(2, mends.Count);
+        var entre = _sim.Chamadas.Skip(mends[0].i + 1).Take(mends[1].i - mends[0].i - 1).Select(c => c.Modo);
+        Assert.Equal(new[] { "stop", "start" }, entre);
+        Assert.Equal(StatusEtapa.Ok, ResultadoDaEtapa("Consertar o banco de dados (2 de 3)").Status);
+    }
+
+    [Fact]
+    public void Conserto_com_erros_no_resumo_diz_que_tratou_os_erros()
+    {
+        // Caso real (11/11/2026): o gfix -m lista o que tratou; "encontrou erros" parecia falha.
+        _sim.RespostasGfix["mend"] = (0,
+            "Summary of validation errors\n\n\tNumber of record level errors\t: 2\n\tNumber of data page errors\t: 1\n" +
+            "\tNumber of index page errors\t: 2\n\tNumber of database page errors\t: 3");
+
+        Assert.Equal(CodigoSaida.Sucesso, Rodar());
+
+        var (status, log) = ResultadoDaEtapa("Consertar o banco de dados (2 de 3)");
+        Assert.Equal(StatusEtapa.Aviso, status);
+        Assert.Contains("o conserto tratou 8 erro(s)", log);
+        Assert.DoesNotContain("encontrou", log);
+    }
+
+    [Fact]
+    public void Conserto_que_perde_a_conexao_duas_vezes_diz_que_nao_foi_feito()
+    {
+        _sim.MendSemConexao = 2;
+
+        Rodar();
+
+        Assert.Equal(2, _sim.Chamadas.Count(c => c.Modo == "mend"));
+        var (status, log) = ResultadoDaEtapa("Consertar o banco de dados (2 de 3)");
+        Assert.Equal(StatusEtapa.Aviso, status);
+        Assert.Contains("perdeu a conexão com o Firebird", log);
+        Assert.Contains("não foi feita", log);
+    }
+
+    private Configuracao Producao() =>
+        ConfigTeste.Criar(_base, Senha, modoTeste: false, naoInterativo: false);
+
+    [Fact]
+    public void Em_producao_espera_o_processo_do_Firebird_fechar_depois_de_cada_parada()
+    {
+        Assert.Equal(CodigoSaida.Sucesso, Rodar(Producao()));
+
+        var paradas = _sim.Chamadas.Count(c => c.Ferramenta == "net" && c.Modo == "stop");
+        Assert.Equal(paradas, _ambiente.Esperas.Count);
+        Assert.All(_ambiente.Esperas, e => Assert.Equal("fbserver.exe", e.Processo));
+        Assert.DoesNotContain(_sim.Chamadas, c => c.Ferramenta == "taskkill");
+    }
+
+    [Fact]
+    public void Processo_que_nao_fecha_depois_do_net_stop_e_encerrado_a_forca()
+    {
+        _ambiente.ProcessoNaoFecha = true;
+
+        Assert.Equal(CodigoSaida.Sucesso, Rodar(Producao()));
+
+        var primeiraParada = _sim.Chamadas.FindIndex(c => c.Ferramenta == "net" && c.Modo == "stop");
+        Assert.Equal("taskkill", _sim.Chamadas[primeiraParada + 1].Ferramenta);
+        Assert.Contains("demorou a fechar", _registro.Tudo);
+    }
+
+    [Fact]
+    public void Modo_teste_nao_espera_o_processo_do_Firebird()
+    {
+        Assert.Equal(CodigoSaida.Sucesso, Rodar());
+        Assert.Empty(_ambiente.Esperas);
+    }
+
+    [Fact]
+    public void Banco_restaurado_com_erros_no_resumo_e_codigo_zero_devolve_o_original()
+    {
+        _sim.BancoRestauradoComErros = true;
+        _sim.RestauradoSaiComZero = true;
+
+        Assert.Equal(CodigoSaida.FalhaNoReparo, Rodar());
+        Assert.Equal("ORIGINAL", File.ReadAllText(_banco));
+        Assert.Contains("Conferir o banco reconstruído", _interacao.Avisos.Last());
     }
 
     [Fact]

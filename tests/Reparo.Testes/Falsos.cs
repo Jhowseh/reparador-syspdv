@@ -55,6 +55,16 @@ internal sealed class AmbienteFalso : IAmbienteSistema
     public bool EhAdministrador() => Administrador;
     public long? EspacoLivreBytes(string pasta) => EspacoLivre;
     public bool TemRuntimeVisualC2005x86(string pastaPrograma) => RuntimeVc80;
+
+    /// <summary>Simula o processo do Firebird que continua aberto depois do "net stop".</summary>
+    public bool ProcessoNaoFecha { get; set; }
+    public List<(string Processo, TimeSpan Limite)> Esperas { get; } = new();
+
+    public bool EsperarProcessoTerminar(string nomeProcesso, TimeSpan limite)
+    {
+        Esperas.Add((nomeProcesso, limite));
+        return !ProcessoNaoFecha;
+    }
 }
 
 /// <summary>Uma chamada feita ao simulador.</summary>
@@ -96,8 +106,17 @@ internal sealed class SimuladorFerramentas : IExecutorProcessos
     /// <summary>Simula o gfix -v encontrando erros no banco recém-restaurado.</summary>
     public bool BancoRestauradoComErros { get; set; }
 
+    /// <summary>Com BancoRestauradoComErros: o gfix lista os erros mas sai com 0 (como o gfix 2.5).</summary>
+    public bool RestauradoSaiComZero { get; set; }
+
     /// <summary>Simula outro programa conectado no banco novo: o gfix -v se recusa a validar.</summary>
     public bool RestauradoComOutraConexao { get; set; }
+
+    /// <summary>Quantas das próximas chamadas do gfix -m perdem a conexão (Firebird sem resposta).</summary>
+    public int MendSemConexao { get; set; }
+
+    /// <summary>Resposta fixa do gfix no banco ORIGINAL, por modo ("validar", "mend").</summary>
+    public Dictionary<string, (int Codigo, string Saida)> RespostasGfix { get; } = new();
 
     public string? Localizar(string ferramenta) => Ausentes.Contains(ferramenta) ? null : "simulado:" + ferramenta;
 
@@ -151,8 +170,17 @@ internal sealed class SimuladorFerramentas : IExecutorProcessos
                 {
                     if (RestauradoComOutraConexao)
                         return (1, "bad parameters on attach or create database\n-secondary server attachments cannot validate databases");
-                    return BancoRestauradoComErros ? (1, "validation errors") : (0, "");
+                    if (BancoRestauradoComErros)
+                        return (RestauradoSaiComZero ? 0 : 1,
+                            "Summary of validation errors\n\n\tNumber of record level errors\t: 1");
+                    return (0, "");
                 }
+                if (c.Modo == "mend" && MendSemConexao > 0)
+                {
+                    MendSemConexao--;
+                    return (1, "Error reading data from the connection.\n-O tempo limite de espera foi atingido.");
+                }
+                if (RespostasGfix.TryGetValue(c.Modo, out var resposta)) return resposta;
                 return DeveFalhar(c) ? (1, "validation errors") : (0, "");
             }
 

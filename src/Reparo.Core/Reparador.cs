@@ -64,8 +64,8 @@ public sealed class Reparador
 
         _registro.Info("Operador confirmou o início do reparo.");
 
-        var firebird = new ControleFirebird(_configuracao, _executor, _registro);
-        EtapasReparo etapas;
+        var firebird = new ControleFirebird(_configuracao, _executor, _registro, _ambiente);
+        EtapasReparo? etapas = null;
         ResultadoFluxo fluxo;
         var firebirdOk = false;
         try
@@ -77,13 +77,20 @@ public sealed class Reparador
                 programas);
             fluxo = new MotorFluxo(_registro, _interacao).Executar(etapas.Montar());
         }
+        catch
+        {
+            // Erro fora das etapas (ex.: a tela caiu): o motor não desfez nada. D-025: o banco sai do lugar
+            // logo no começo, então é preciso devolvê-lo aqui.
+            etapas?.DevolverSeInterrompido();
+            throw;
+        }
         finally
         {
             // R15: termine como terminar (inclusive com erro inesperado), o Firebird fica ligado.
             firebirdOk = GarantirFirebirdLigado(firebird);
         }
 
-        return Concluir(fluxo, etapas, firebirdOk);
+        return Concluir(fluxo, etapas!, firebirdOk);
     }
 
     private bool GarantirFirebirdLigado(ControleFirebird firebird)

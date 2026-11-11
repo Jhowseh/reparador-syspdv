@@ -15,6 +15,12 @@ public interface IAmbienteSistema
     /// Na dúvida responde sim (o próprio gfix acusa se faltar).
     /// </summary>
     bool TemRuntimeVisualC2005x86(string pastaPrograma);
+
+    /// <summary>
+    /// Espera até não haver mais nenhum processo com esse nome (ex.: "fbserver.exe").
+    /// Verdadeiro se ele fechou (ou nem estava rodando) dentro do limite.
+    /// </summary>
+    bool EsperarProcessoTerminar(string nomeProcesso, TimeSpan limite);
 }
 
 public sealed class AmbienteWindows : IAmbienteSistema
@@ -58,6 +64,26 @@ public sealed class AmbienteWindows : IAmbienteSistema
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             return true;
+        }
+    }
+
+    public bool EsperarProcessoTerminar(string nomeProcesso, TimeSpan limite)
+    {
+        // GetProcessesByName quer o nome sem ".exe".
+        var nome = nomeProcesso.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? nomeProcesso[..^4] : nomeProcesso;
+        var fim = DateTime.UtcNow + limite;
+        while (true)
+        {
+            var processos = System.Diagnostics.Process.GetProcessesByName(nome);
+            var rodando = processos.Length > 0;
+            foreach (var p in processos)
+                p.Dispose();
+
+            if (!rodando)
+                return true;
+            if (DateTime.UtcNow >= fim)
+                return false;
+            Thread.Sleep(250);
         }
     }
 }
